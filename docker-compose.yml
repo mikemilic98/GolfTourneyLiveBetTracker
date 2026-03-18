@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: golf-leaderboard-db
+    environment:
+      POSTGRES_DB: golf_leaderboard
+      POSTGRES_USER: golf_user
+      POSTGRES_PASSWORD: golf_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U golf_user -d golf_leaderboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: golf-leaderboard-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: golf_leaderboard
+      DB_USER: golf_user
+      DB_PASSWORD: golf_password
+      JWT_SECRET: your-256-bit-secret-key-change-in-production-min-32-chars
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: golf-leaderboard-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
